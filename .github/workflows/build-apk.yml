@@ -36,8 +36,9 @@ jobs:
           cp index.html app/src/main/assets/index.html
 
           mkdir -p app/src/main/res/drawable
-          cp file_000000015a881fda45c19aa0abd08b8.png app/src/main/res/drawable/app_icon.png
-
+          ICON_FILE=$(find . -maxdepth 2 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) | head -n 1)
+          cp "$ICON_FILE" app/src/main/res/drawable/app_icon.png
+          
           mkdir -p app/src/main/java/com/kall/notasaya
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/layout
