@@ -20,12 +20,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android SDK
         run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          yes | sdkmanager --licenses || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Create Android project
         run: |
@@ -64,7 +62,7 @@ jobs:
           EOF
 
           cat > gradle.properties <<'EOF'
-          android.useAndroidX=true
+          android.useAndroidX=false
           EOF
 
           cat > app/build.gradle <<'EOF'
@@ -84,44 +82,49 @@ jobs:
                   versionName '1.0'
               }
           }
-
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.7.0'
-              implementation 'androidx.webkit:webkit:1.12.1'
-          }
           EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
               <application
                   android:theme="@style/AppTheme"
                   android:label="Nota Saya"
                   android:allowBackup="true">
+
                   <activity
                       android:name=".MainActivity"
                       android:exported="true">
+
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
+
                   </activity>
+
               </application>
+
           </manifest>
           EOF
 
           cat > app/src/main/res/values/styles.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+
+              <style name="AppTheme"
+                  parent="@android:style/Theme.Material.Light.NoActionBar">
                   <item name="android:fontFamily">sans</item>
                   <item name="android:colorAccent">#2563EB</item>
               </style>
+
           </resources>
           EOF
 
           cat > app/src/main/res/layout/activity_main.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <WebView xmlns:android="http://schemas.android.com/apk/res/android"
               android:id="@+id/webView"
               android:layout_width="match_parent"
@@ -131,18 +134,21 @@ jobs:
           cat > app/src/main/java/com/kall/notasaya/MainActivity.java <<'EOF'
           package com.kall.notasaya;
 
+          import android.app.Activity;
           import android.os.Bundle;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
-          import androidx.appcompat.app.AppCompatActivity;
 
-          public class MainActivity extends AppCompatActivity {
+          public class MainActivity extends Activity {
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
+
                   setContentView(R.layout.activity_main);
 
                   WebView webView = findViewById(R.id.webView);
+
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
