@@ -218,15 +218,10 @@
     };
 
     window.deleteNote = function(id) {
-      const note = notes.find(n => n.id === id);
-      if (!note) return;
-
-      if (confirm(`Padam nota "${note.title || "Tanpa tajuk"}"?`)) {
-        notes = notes.filter(n => n.id !== id);
-        saveData();
-        render();
-      }
-    };
+  notes = notes.filter(n => n.id !== id);
+  saveData();
+  render();
+};
 
     document.getElementById("addBtn").addEventListener("click", () => openModal());
     document.getElementById("cancelBtn").addEventListener("click", closeModal);
