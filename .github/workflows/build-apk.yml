@@ -1,0 +1,165 @@
+name: Build Nota Saya APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/assets
+          cp index.html app/src/main/assets/index.html
+
+          mkdir -p app/src/main/java/com/kall/notasaya
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/layout
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "NotaSaya"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          android.useAndroidX=true
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.kall.notasaya'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.kall.notasaya'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+              implementation 'androidx.webkit:webkit:1.12.1'
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:theme="@style/AppTheme"
+                  android:label="Nota Saya"
+                  android:allowBackup="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:colorAccent">#2563EB</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/layout/activity_main.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <WebView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/webView"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"/>
+          EOF
+
+          cat > app/src/main/java/com/kall/notasaya/MainActivity.java <<'EOF'
+          package com.kall.notasaya;
+
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  WebView webView = findViewById(R.id.webView);
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+
+                  webView.loadUrl("file:///android_asset/index.html");
+              }
+          }
+          EOF
+
+      - name: Build APK
+        run: |
+          curl -L -o gradle.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q gradle.zip
+          ./gradle-8.10.2/bin/gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NotaSaya-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
